@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AAMaker"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="AsciiArtMaker" Height="450" Width="800">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
@@ -65,9 +65,10 @@
             <RadioButton x:Name="ColorButton" Content="カラー" Height="20" Width="85" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
         </StackPanel>
         <StackPanel x:Name="SizePanel" HorizontalAlignment="Left" Orientation="Horizontal" Height="20" Margin="603,240,0,0" VerticalAlignment="Top" Width="170">
-            <TextBox x:Name="WidthTextBox" Text="0" TextWrapping="Wrap" Width="85" PreviewTextInput="TextBox_PreviewTextInput" TextChanged="WidthTextBox_TextChanged" HorizontalAlignment="Center" VerticalAlignment="Center" Height="20"/>
-            <TextBox x:Name="HeightTextBox" Text="0" TextWrapping="Wrap" Width="85" PreviewTextInput="TextBox_PreviewTextInput" TextChanged="HeightTextBox_TextChanged" HorizontalAlignment="Center" VerticalAlignment="Center" Height="20"/>
+            <TextBox x:Name="WidthTextBox" Text="" TextWrapping="Wrap" Width="85" PreviewTextInput="TextBox_PreviewTextInput" TextChanged="WidthTextBox_TextChanged" HorizontalAlignment="Center" VerticalAlignment="Center" Height="20"/>
+            <TextBox x:Name="HeightTextBox" Text="" TextWrapping="Wrap" Width="85" PreviewTextInput="TextBox_PreviewTextInput" TextChanged="HeightTextBox_TextChanged" HorizontalAlignment="Center" VerticalAlignment="Center" Height="20"/>
         </StackPanel>
+        <Button x:Name="ResetButton" Content="文字数リセット" HorizontalAlignment="Left" Height="20" Margin="688,283,0,0" VerticalAlignment="Top" Width="85" Click="ResetButton_Click"/>
 
 
     </Grid>

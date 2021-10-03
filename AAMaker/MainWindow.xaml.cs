@@ -21,6 +21,7 @@ namespace AAMaker
         static Font font = new Font("MS　ゴシック", 7);
         static int width = 0, height = 0, expansion = 10;
         static char c;
+        static bool flag = false;
         static String path;
 
         //アスキー文字一覧
@@ -86,10 +87,10 @@ namespace AAMaker
                     img = Bitmap.FromFile(path) as Bitmap;
                     DragAndDrop.Source = new BitmapImage(new Uri(path));
 
-                    WidthTextBox.Text = String.Concat(img.Width);
-                    HeightTextBox.Text = String.Concat(img.Height);
                     width = img.Width;
+                    WidthTextBox.Text = String.Concat(width);
                     height = img.Height;
+                    HeightTextBox.Text = String.Concat(height);
                 }
             };
         }
@@ -99,7 +100,7 @@ namespace AAMaker
         {
             if (!Regex.IsMatch(WidthTextBox.Text, @"^[1-9][0-9]*") || !Regex.IsMatch(HeightTextBox.Text, @"^[1-9][0-9]*"))
             {
-                MessageBox.Show("自然数を入力してください");
+                MessageBox.Show("文字数は自然数です");
                 return;
             }
             else if (Int32.Parse(WidthTextBox.Text) > 1000 || Int32.Parse(HeightTextBox.Text) > 1000)
@@ -129,19 +130,48 @@ namespace AAMaker
         // 幅入力時の挙動
         private void WidthTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (width == 0 || WidthTextBox.Text == "") return;
-            if (WidthTextBox.Text == String.Concat(width * Int32.Parse(HeightTextBox.Text) / height)) return;
+            if (flag)
+            {
+                flag = false;
+                return;
+            }
 
+
+            if (WidthTextBox.Text == "")
+            {
+                flag = true;
+                HeightTextBox.Text = "0";
+                return;
+            }
+
+            flag = true;
             HeightTextBox.Text = String.Concat(height * Int32.Parse(WidthTextBox.Text) / width);
         }
 
         // 高さ入力時の挙動
         private void HeightTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (height == 0 || HeightTextBox.Text == "") return;
-            if (HeightTextBox.Text == String.Concat(height * Int32.Parse(WidthTextBox.Text) / width)) return;
+            if (flag)
+            {
+                flag = false;
+                return;
+            }
 
+            if (HeightTextBox.Text == "")
+            {
+                flag = true;
+                WidthTextBox.Text = "0";
+                return;
+            }
+
+            flag = true;
             WidthTextBox.Text = String.Concat(width * Int32.Parse(HeightTextBox.Text) / height);
+        }
+
+        private void ResetButton_Click(object sender, RoutedEventArgs e)
+        {
+            WidthTextBox.Text = String.Concat(width);
+            HeightTextBox.Text = String.Concat(height);
         }
 
         // ピクセル数入力時の挙動
