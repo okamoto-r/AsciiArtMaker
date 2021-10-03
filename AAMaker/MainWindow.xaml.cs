@@ -2,6 +2,7 @@
 using System.IO;
 using System.Windows;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using System.Text.RegularExpressions;
@@ -16,13 +17,13 @@ namespace AAMaker
     /// </summary>
     public partial class MainWindow : Window
     {
-        static Bitmap img, new_img;
-        static Graphics graphics;
-        static Font font = new Font("MS　ゴシック", 7);
-        static int width = 0, height = 0, expansion = 10;
-        static char c;
-        static bool flag = false;
-        static String path;
+        static Bitmap img, new_img, save_img; // 入力画像, AA画像, AA画像(サイズ圧縮)
+        static Graphics graphics; // AA画像描画
+        static Font font = new Font("MS　ゴシック", 7); // AA画像文字フォント
+        static int width = 0, height = 0, expansion = 10; // 入力画像幅, 入力画像高さ, 文字間隔
+        static char c; // AA文字
+        static bool flag = false; // 文字数設定用フラグ
+        static String path; // 入力画像パス
 
         //アスキー文字一覧
         static char[] ch = { ' ', '-', '\'', '.', '~', '_', '\"', '<', '!', '>', '`', ':', '+', '\\', '/', ';', '^',
@@ -55,11 +56,11 @@ namespace AAMaker
         public MainWindow()
         {
             InitializeComponent();
-            EnableDragAndDrop(MainGrid);
+            EnableDragAndDrop(ImageRectangle);
         }
 
         // 画像ドラッグアンドドロップ設定
-        private void EnableDragAndDrop(DataGrid control)
+        private void EnableDragAndDrop(System.Windows.Shapes.Rectangle control)
         {
             control.AllowDrop = true;
             control.PreviewDragOver += (s, e) =>
@@ -95,41 +96,34 @@ namespace AAMaker
             };
         }
 
-        // 変換ボタン設定
-        private void Button_Click(object sender, RoutedEventArgs e)
+        // 画像リセットボタン設定
+        private void ImageResetButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!Regex.IsMatch(WidthTextBox.Text, @"^[1-9][0-9]*") || !Regex.IsMatch(HeightTextBox.Text, @"^[1-9][0-9]*"))
-            {
-                MessageBox.Show("文字数は自然数です");
-                return;
-            }
-            else if (Int32.Parse(WidthTextBox.Text) > 1000 || Int32.Parse(HeightTextBox.Text) > 1000)
-            {
-                MessageBoxResult result = MessageBox.Show("画像サイズが大きくなりますがよろしいですか？\n(文字数は幅・高さともに 1000 以下を推奨します)", "警告", MessageBoxButton.OKCancel);
-                if (result == MessageBoxResult.Cancel) return;
-            }
+            DragAndDrop.Source = null;
+            WidthTextBox.Text = "";
+            HeightTextBox.Text = "";
+            OutputTextBox.Text = "";
 
-            if (Button.IsEnabled)
-            {
-                ContentsIsEnabele();
-
-                make();
-            }
+            img.Dispose();
         }
 
-        // IsEnable の切り替え
-        private void ContentsIsEnabele()
+        // ピクセル数入力時の挙動
+        private void TextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
-            MainGrid.AllowDrop = !MainGrid.AllowDrop;
-            Button.IsEnabled = !Button.IsEnabled;
-            TypePanel.IsEnabled = !TypePanel.IsEnabled;
-            SizePanel.IsEnabled = !SizePanel.IsEnabled;
-            OutputTextBox.IsEnabled = !OutputTextBox.IsEnabled;
+            if (img == null)
+            {
+                MessageBox.Show("初めに画像を入力してください");
+                e.Handled = true;
+            }
+
+            if (!Regex.IsMatch(e.Text, @"[0-9]")) e.Handled = true;
         }
 
         // 幅入力時の挙動
         private void WidthTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
+            if (img == null) return;
+
             if (flag)
             {
                 flag = false;
@@ -140,7 +134,7 @@ namespace AAMaker
             if (WidthTextBox.Text == "")
             {
                 flag = true;
-                HeightTextBox.Text = "0";
+                HeightTextBox.Text = "";
                 return;
             }
 
@@ -151,6 +145,8 @@ namespace AAMaker
         // 高さ入力時の挙動
         private void HeightTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
+            if (img == null) return;
+
             if (flag)
             {
                 flag = false;
@@ -160,7 +156,7 @@ namespace AAMaker
             if (HeightTextBox.Text == "")
             {
                 flag = true;
-                WidthTextBox.Text = "0";
+                WidthTextBox.Text = "";
                 return;
             }
 
@@ -168,17 +164,77 @@ namespace AAMaker
             WidthTextBox.Text = String.Concat(width * Int32.Parse(HeightTextBox.Text) / height);
         }
 
+        // ピクセル数リセット
         private void ResetButton_Click(object sender, RoutedEventArgs e)
         {
             WidthTextBox.Text = String.Concat(width);
             HeightTextBox.Text = String.Concat(height);
         }
 
-        // ピクセル数入力時の挙動
-        private void TextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        // 変換ボタン設定
+        private void Button_Click(object sender, RoutedEventArgs e)
         {
-            if (!Regex.IsMatch(e.Text, @"[0-9]")) e.Handled = true;
+            if (img == null)
+            {
+                MessageBox.Show("画像を入力してください");
+                return;
+            }
+
+            if (OutputTextBox.Text == "")
+            {
+                MessageBox.Show("出力ファイル名を入力してください");
+                return;
+            }
+
+            if (WidthTextBox.Text == "" || HeightTextBox.Text == "")
+            {
+                MessageBox.Show("文字数を入力してください");
+                return;
+            }
+            
+            if (!Regex.IsMatch(WidthTextBox.Text, @"^[1-9][0-9]*") || !Regex.IsMatch(HeightTextBox.Text, @"^[1-9][0-9]*"))
+            {
+                MessageBox.Show("文字数は自然数です");
+                return;
+            }
+            
+            if (Int32.Parse(WidthTextBox.Text) > 1000 || Int32.Parse(HeightTextBox.Text) > 1000)
+            {
+                MessageBoxResult result = MessageBox.Show("画像サイズが大きくなりますがよろしいですか？\n(文字数は幅・高さともに 1000 以下を推奨します)", "警告", MessageBoxButton.OKCancel);
+                if (result == MessageBoxResult.Cancel) return;
+            }
+
+            if (Button.IsEnabled)
+            {
+                ContentsIsEnabele();
+
+                make();
+
+                ContentsIsEnabele();
+            }
         }
+
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            if (img != null) img.Dispose();
+            if (new_img != null) new_img.Dispose();
+            if (save_img != null) save_img.Dispose();
+            if (graphics != null) graphics.Dispose();
+
+            font.Dispose();
+        }
+
+        // IsEnable の切り替え
+        private void ContentsIsEnabele()
+        {
+            ImageRectangle.AllowDrop = !ImageRectangle.AllowDrop;
+            Button.IsEnabled = !Button.IsEnabled;
+            TypePanel.IsEnabled = !TypePanel.IsEnabled;
+            SizePanel.IsEnabled = !SizePanel.IsEnabled;
+            OutputTextBox.IsEnabled = !OutputTextBox.IsEnabled;
+        }
+
+    
 
         // 使用文字の選択
         private char select_char(double x)
@@ -201,7 +257,16 @@ namespace AAMaker
             height = Int32.Parse(HeightTextBox.Text);
             img = new Bitmap(img, new System.Drawing.Size(width, height));
 
-            new_img = new Bitmap(width * expansion, height * expansion + expansion);
+            try
+            {
+                new_img = new Bitmap(width * expansion, height * expansion + expansion, PixelFormat.Format24bppRgb);
+            }
+            catch (ArgumentException)
+            {
+                MessageBox.Show("文字数が多すぎます");
+                return;
+            }
+
             graphics = Graphics.FromImage(new_img);
             graphics.FillRectangle(System.Drawing.Brushes.White, graphics.VisibleClipBounds);
 
@@ -219,8 +284,10 @@ namespace AAMaker
 
             }
 
-            new_img.Save(Path.GetDirectoryName(path) + "/" + OutputTextBox.Text + "_" + ((bool)ColorButton.IsChecked ? "color" : "monochrome") + ".png");
-            ContentsIsEnabele();
+            if ((bool)ColorButton.IsChecked) save_img = new_img.Clone(new RectangleF(0, 0, width * expansion, height * expansion), PixelFormat.Format8bppIndexed);
+            else save_img = new_img.Clone(new RectangleF(0, 0, width * expansion, height * expansion), PixelFormat.Format1bppIndexed);
+
+            save_img.Save(Path.GetDirectoryName(path) + "/" + OutputTextBox.Text + "_" + ((bool)ColorButton.IsChecked ? "color" : "monochrome") + ".png");
         }
     }
 }
