@@ -71,7 +71,16 @@ namespace AAMaker
             {
                 if (e.Data.GetDataPresent(DataFormats.FileDrop))
                 {
+                    width = 0;
+                    height = 0;
+
                     path = (e.Data.GetData(DataFormats.FileDrop) as String[])[0];
+                    if (Path.GetExtension(path) != ".jpg" && Path.GetExtension(path) != ".png" && Path.GetExtension(path) != ".gif")
+                    {
+                        MessageBox.Show("jpg, png, gif ではありません");
+                        return;
+                    }
+
                     OutputTextBox.Text = Path.GetFileNameWithoutExtension(path);
 
                     img = Bitmap.FromFile(path) as Bitmap;
