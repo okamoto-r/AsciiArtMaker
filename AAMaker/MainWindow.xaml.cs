@@ -104,7 +104,7 @@ namespace AAMaker
             HeightTextBox.Text = "";
             OutputTextBox.Text = "";
 
-            img.Dispose();
+            if (img != null) img.Dispose();
         }
 
         // ピクセル数入力時の挙動
@@ -167,8 +167,15 @@ namespace AAMaker
         // ピクセル数リセット
         private void ResetButton_Click(object sender, RoutedEventArgs e)
         {
-            WidthTextBox.Text = String.Concat(width);
-            HeightTextBox.Text = String.Concat(height);
+            if (img != null)
+            {
+                WidthTextBox.Text = String.Concat(width);
+                HeightTextBox.Text = String.Concat(height);
+                return;
+            }
+
+            if (WidthTextBox.Text != "") WidthTextBox.Text = String.Concat(width);
+            if (HeightTextBox.Text != "") HeightTextBox.Text = String.Concat(height);
         }
 
         // 変換ボタン設定
@@ -232,6 +239,8 @@ namespace AAMaker
             TypePanel.IsEnabled = !TypePanel.IsEnabled;
             SizePanel.IsEnabled = !SizePanel.IsEnabled;
             OutputTextBox.IsEnabled = !OutputTextBox.IsEnabled;
+
+            Window.Title = Window.Title == "AsciiArtMaker (変換中)" ? "AsciiArtMaker (完了)" : "AsciiArtMaker (変換中)";
         }
 
     
@@ -287,7 +296,16 @@ namespace AAMaker
             if ((bool)ColorButton.IsChecked) save_img = new_img.Clone(new RectangleF(0, 0, width * expansion, height * expansion), PixelFormat.Format8bppIndexed);
             else save_img = new_img.Clone(new RectangleF(0, 0, width * expansion, height * expansion), PixelFormat.Format1bppIndexed);
 
-            save_img.Save(Path.GetDirectoryName(path) + "/" + OutputTextBox.Text + "_" + ((bool)ColorButton.IsChecked ? "color" : "monochrome") + ".png");
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path) + "/" + Path.GetDirectoryName(OutputTextBox.Text));
+                save_img.Save(Path.GetDirectoryName(path) + "/" + OutputTextBox.Text + "_" + ((bool)ColorButton.IsChecked ? "color" : "monochrome") + ".png");
+            }
+            catch(Exception e)
+            {
+                MessageBox.Show(e.ToString()+"出力できませんでした.\n出力ファイル名を見直してください.");
+                return;
+            }
         }
     }
 }
